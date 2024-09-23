@@ -1,0 +1,28 @@
+{
+  "bastion_public_ip": {
+    "sensitive": false,
+    "type": "string",
+    "value": "44.192.252.188"
+  },
+  "private_ips": {
+    "sensitive": false,
+    "type": [
+      "tuple",
+      [
+        "string",
+        "string",
+        "string"
+      ]
+    ],
+    "value": [
+      "10.0.1.178",
+      "10.0.1.128",
+      "10.0.1.50"
+    ]
+  },
+  "ssh_command": {
+    "sensitive": false,
+    "type": "string",
+    "value": "ssh -i ./terraform/confluent-ec2-key.pem ec2-user@44.192.252.188"
+  }
+}

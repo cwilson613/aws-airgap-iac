@@ -1,0 +1,30 @@
+# Ignore the Justfile binary cache
+.justfile.swp
+
+# Ignore Terraform state files
+terraform.tfstate
+terraform.tfstate.*
+
+# Ignore Terraform plan output files
+*.tfplan
+
+# Ignore backup files created by Terraform
+*.tfstate.backup
+
+# Ignore the .terraform directory where plugins and modules are stored
+.terraform/
+.terraform.lock.hcl
+
+# Ignore any local files created by the project
+confluent-ec2-key.pem
+
+# Ignore local file artifacts or system files
+*.log
+*.swp
+*.bak
+*.tmp
+
+# Ignore IDE or editor specific files
+.vscode/
+.idea/
+.DS_Store
