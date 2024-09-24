@@ -175,7 +175,7 @@ resource "aws_instance" "confluent_instances" {
   key_name                    = data.aws_key_pair.confluent_key_pair.key_name
 
   tags = {
-    Name = "confluent_node_${count.index + 1}"
+    Name = "${var.user}-confluent-node-${count.index + 1}"
   }
 }
 
@@ -230,6 +230,6 @@ resource "aws_instance" "bastion_instance" {
   }
 
   tags = {
-    Name = "bastion_host"
+    Name = "${var.user}-confluent-bastion"
   }
 }

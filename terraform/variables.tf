@@ -44,3 +44,8 @@ variable "allowed_ssh_cidr" {
   type        = string
   default     = "0.0.0.0/0"
 }
+
+variable "user" {
+  description = "User for naming differentiation"
+  type        = string
+}
