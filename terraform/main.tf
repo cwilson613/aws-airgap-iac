@@ -180,7 +180,22 @@ resource "aws_instance" "confluent_instances" {
 }
 
 # Create a Bastion EC2 instance (Amazon Linux)
-resource "aws_instance" "bastion_instance" {
+resource "aws_instance" "control_node" {
+  ami = "ami-09efeab7e5627931e"
+  #   ami                         = "ami-0c94855ba95c71c99" # Amazon Linux 2 AMI
+  instance_type               = "t2.large"
+  subnet_id                   = aws_subnet.private_subnet.id
+  vpc_security_group_ids      = [aws_security_group.confluent_sg.id]
+  associate_public_ip_address = false # Bastion needs public access
+  key_name                    = data.aws_key_pair.confluent_key_pair.key_name
+
+  tags = {
+    Name = "${var.user}-confluent-bastion"
+  }
+}
+
+# Create a Bastion EC2 instance (Amazon Linux)
+resource "aws_instance" "distro_server" {
   ami = "ami-09efeab7e5627931e"
   #   ami                         = "ami-0c94855ba95c71c99" # Amazon Linux 2 AMI
   instance_type               = "t2.medium"
