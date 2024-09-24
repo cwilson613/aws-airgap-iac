@@ -78,7 +78,10 @@ PACKAGES=(
     confluent-platform
     confluent-security
     nc
-    ansible
+    ansible-core
+    git
+    curl
+    wget
     createrepo
     java-11-openjdk
 )

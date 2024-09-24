@@ -181,7 +181,8 @@ resource "aws_instance" "confluent_instances" {
 
 # Create a Bastion EC2 instance (Amazon Linux)
 resource "aws_instance" "bastion_instance" {
-  ami                         = "ami-0c94855ba95c71c99" # Amazon Linux 2 AMI
+  ami = "ami-09efeab7e5627931e"
+  #   ami                         = "ami-0c94855ba95c71c99" # Amazon Linux 2 AMI
   instance_type               = "t2.micro"
   subnet_id                   = aws_subnet.public_subnet.id
   vpc_security_group_ids      = [aws_security_group.bastion_sg.id]
