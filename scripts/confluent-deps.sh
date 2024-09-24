@@ -11,7 +11,12 @@ mkdir -p "$DOWNLOAD_DIR"
 
 # Pre-Prereqs
 sudo yum update -y
-sudo yum install git -y
+sudo yum install \
+    ansible-core \
+    tar \
+    python3 \
+    python3-pip \
+    git -y
 
 # Step 1: Clone cp-ansible repository and build Ansible collection
 echo "Cloning cp-ansible repository..."
