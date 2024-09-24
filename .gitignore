@@ -15,8 +15,8 @@ terraform.tfstate.*
 .terraform/
 .terraform.lock.hcl
 
-# Ignore any local files created by the project
-confluent-ec2-key.pem
+# Ignore any local keys created by the project
+*.pem
 
 # Ignore local file artifacts or system files
 *.log

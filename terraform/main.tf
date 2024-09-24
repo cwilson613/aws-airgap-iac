@@ -135,33 +135,33 @@ resource "aws_security_group" "confluent_sg" {
   }
 }
 
-# Generate a new private key
-resource "tls_private_key" "confluent_key" {
-  algorithm = "RSA"
-  rsa_bits  = 4096
-}
+# # Generate a new private key
+# resource "tls_private_key" "confluent_key" {
+#   algorithm = "RSA"
+#   rsa_bits  = 4096
+# }
 
 # Create the AWS Key Pair using the generated private key
-resource "aws_key_pair" "confluent_key_pair" {
-  key_name   = "confluent-ec2-key"
-  public_key = tls_private_key.confluent_key.public_key_openssh
+data "aws_key_pair" "confluent_key_pair" {
+  key_name = "cog-team"
+  #   public_key = tls_private_key.confluent_key.public_key_openssh
 }
 
 # Save the private key locally
-resource "local_file" "private_key" {
-  content  = tls_private_key.confluent_key.private_key_pem
-  filename = "${path.module}/confluent-ec2-key.pem"
+data "local_file" "private_key" {
+  #   content  = tls_private_key.confluent_key.private_key_pem
+  filename = "${path.module}/cog-team.pem"
 
 }
 
-# Use a null_resource with a local-exec provisioner to set the file permissions
-resource "null_resource" "set_key_permissions" {
-  depends_on = [local_file.private_key]
+# # Use a null_resource with a local-exec provisioner to set the file permissions
+# resource "null_resource" "set_key_permissions" {
+#   depends_on = [local_file.private_key]
 
-  provisioner "local-exec" {
-    command = "chmod 600 ${local_file.private_key.filename}"
-  }
-}
+#   provisioner "local-exec" {
+#     command = "chmod 600 ${data.local_file.private_key.filename}"
+#   }
+# }
 
 # Create EC2 instances
 resource "aws_instance" "confluent_instances" {
@@ -172,7 +172,7 @@ resource "aws_instance" "confluent_instances" {
   subnet_id                   = aws_subnet.private_subnet.id
   vpc_security_group_ids      = [aws_security_group.confluent_sg.id]
   associate_public_ip_address = false
-  key_name                    = aws_key_pair.confluent_key_pair.key_name
+  key_name                    = data.aws_key_pair.confluent_key_pair.key_name
 
   tags = {
     Name = "confluent_node_${count.index + 1}"
@@ -186,17 +186,30 @@ resource "aws_instance" "bastion_instance" {
   subnet_id                   = aws_subnet.public_subnet.id
   vpc_security_group_ids      = [aws_security_group.bastion_sg.id]
   associate_public_ip_address = true # Bastion needs public access
-  key_name                    = aws_key_pair.confluent_key_pair.key_name
+  key_name                    = data.aws_key_pair.confluent_key_pair.key_name
 
   # Provisioners to copy the private key to the bastion host
   provisioner "file" {
-    source      = local_file.private_key.filename
-    destination = "/home/ec2-user/confluent-ec2-key.pem"
+    source      = data.local_file.private_key.filename
+    destination = "/home/ec2-user/cog-team.pem"
 
     connection {
       type        = "ssh"
       user        = "ec2-user"
-      private_key = local_file.private_key.content # Use the generated key for connecting
+      private_key = data.local_file.private_key.content # Use the generated key for connecting
+      host        = self.public_ip
+    }
+  }
+
+  # Provisioners to copy the private key to the bastion host
+  provisioner "file" {
+    source      = "${path.module}/../scripts/confluent-deps.sh"
+    destination = "/home/ec2-user/confluent-deps.sh"
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = data.local_file.private_key.content # Use the generated key for connecting
       host        = self.public_ip
     }
   }
@@ -204,14 +217,14 @@ resource "aws_instance" "bastion_instance" {
   # Set permissions on the key using remote-exec
   provisioner "remote-exec" {
     inline = [
-      "chmod 600 /home/ec2-user/confluent-ec2-key.pem",
-      "chown ec2-user:ec2-user /home/ec2-user/confluent-ec2-key.pem"
+      "chmod 600 /home/ec2-user/cog-team.pem",
+      "chown ec2-user:ec2-user /home/ec2-user/cog-team.pem"
     ]
 
     connection {
       type        = "ssh"
       user        = "ec2-user"
-      private_key = local_file.private_key.content # Use the generated key for connecting
+      private_key = data.local_file.private_key.content # Use the generated key for connecting
       host        = self.public_ip
     }
   }

@@ -68,9 +68,32 @@ This project automates the provisioning of AWS infrastructure required for deplo
     "10.0.1.128",
     "10.0.1.50",
     ]
-    ssh_command = "ssh -i ./terraform/confluent-ec2-key.pem ec2-user@44.XXX.XXX.XXX"
+    ssh_command = "ssh -i ./terraform/cog-team.pem ec2-user@44.XXX.XXX.XXX"
     ```
 
-The private key should also be present on the bastion machine.
+The private key should also be present on the bastion machine, along with the dependency script.
 
 SSH is only accepted to the nodes if it's coming from the public subnet, so use the bastion as an internet-connected jumpbox.
+
+To run the dependency installation, first make the script executable and then execute it - be aware that immediately after spinning up, `yum` will have some cleanup to do, and may hold the system's `yum lock` for an irritating amount of time.
+
+```bash
+chmod +x ./confluent-deps.sh
+./confluent-deps.sh
+```
+
+Example Output:
+
+```bash
+<truncated yum and curl output, tarball packing>
+Done. The offline installer is 'confluent_offline_install_7.7.1.tar.gz'
+```
+
+Double Check:
+
+```bash
+> ls
+cog-team.pem  confluent-deps.sh  confluent_offline_install  confluent_offline_install_7.7.1.tar.gz
+> ls confluent_offline_install
+ansible_collections  confluent.repo  extra_rpms  monitoring_jars  pip_packages  rpms
+```

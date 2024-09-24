@@ -10,6 +10,6 @@ output "bastion_public_ip" {
 
 output "ssh_command" {
   description = "Simple prepopulated command for speed"
-  value       = "ssh -i ./terraform/confluent-ec2-key.pem ec2-user@${aws_instance.bastion_instance.public_ip}"
+  value       = "ssh -i ~/.ssh/cog-team.pem ec2-user@${aws_instance.bastion_instance.public_ip}"
 }
 
