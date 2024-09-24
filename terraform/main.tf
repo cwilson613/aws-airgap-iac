@@ -204,6 +204,11 @@ resource "aws_instance" "distro_server" {
   associate_public_ip_address = true # Bastion needs public access
   key_name                    = data.aws_key_pair.confluent_key_pair.key_name
 
+  root_block_device {
+    volume_size = 256   # Change this to your desired size in GB
+    volume_type = "gp3" # Can be gp2, gp3, io1, etc.
+  }
+
   # Provisioners to copy the private key to the bastion host
   provisioner "file" {
     source      = data.local_file.private_key.filename
