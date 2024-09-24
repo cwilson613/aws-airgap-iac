@@ -183,7 +183,7 @@ resource "aws_instance" "confluent_instances" {
 resource "aws_instance" "bastion_instance" {
   ami = "ami-09efeab7e5627931e"
   #   ami                         = "ami-0c94855ba95c71c99" # Amazon Linux 2 AMI
-  instance_type               = "t3.medium"
+  instance_type               = "t2.medium"
   subnet_id                   = aws_subnet.public_subnet.id
   vpc_security_group_ids      = [aws_security_group.bastion_sg.id]
   associate_public_ip_address = true # Bastion needs public access
