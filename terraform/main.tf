@@ -190,7 +190,7 @@ resource "aws_instance" "control_node" {
   key_name                    = data.aws_key_pair.confluent_key_pair.key_name
 
   tags = {
-    Name = "${var.user}-confluent-bastion"
+    Name = "${var.user}-confluent-control-node"
   }
 }
 
@@ -246,6 +246,6 @@ resource "aws_instance" "distro_server" {
   }
 
   tags = {
-    Name = "${var.user}-confluent-bastion"
+    Name = "${var.user}-confluent-distribution-node"
   }
 }
