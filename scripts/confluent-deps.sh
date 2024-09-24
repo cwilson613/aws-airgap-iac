@@ -12,6 +12,7 @@ mkdir -p "$DOWNLOAD_DIR"
 # Pre-Prereqs
 sudo yum update -y
 sudo yum install \
+    yum-utils \
     ansible-core \
     tar \
     python3 \
@@ -93,7 +94,7 @@ PACKAGES=(
 
 # Download packages and dependencies
 mkdir -p "$DOWNLOAD_DIR/rpms"
-yumdownloader --resolve --destdir="$DOWNLOAD_DIR/rpms" "${PACKAGES[@]}"
+yumdownloader -c "$DOWNLOAD_DIR/confluent.repo" --resolve --destdir="$DOWNLOAD_DIR/rpms" "${PACKAGES[@]}"
 
 # Step 6: Download monitoring JARs (Optional)
 echo "Downloading monitoring JARs..."
