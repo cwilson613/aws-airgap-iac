@@ -9,7 +9,7 @@ ANSIBLE_COLLECTION_DIR="$DOWNLOAD_DIR/ansible_collections/confluent"
 # Create download directory
 mkdir -p "$DOWNLOAD_DIR"
 
-# Pre-Prereqs
+# Pre-Prereqs for distro node
 sudo yum update -y
 sudo yum install \
     yum-utils \
@@ -46,7 +46,14 @@ pip3 download cryptography -d "$DOWNLOAD_DIR/pip_packages"
 # Step 3: Download epel-release package
 echo "Downloading epel-release package..."
 mkdir -p "$DOWNLOAD_DIR/extra_rpms"
-yumdownloader --destdir="$DOWNLOAD_DIR/extra_rpms" epel-release
+yumdownloader --resolve --destdir="$DOWNLOAD_DIR/extra_rpms" \
+    epel-release \
+    ansible-core \
+    tar \
+    python3 \
+    python3-pip \
+    git
+    
 
 # Step 4: Create confluent.repo file
 echo "Creating confluent.repo file..."
@@ -84,12 +91,10 @@ PACKAGES=(
     confluent-platform
     confluent-security
     nc
-    ansible-core
-    git
-    curl
-    wget
+    ansible
     createrepo
     java-11-openjdk
+    java-17-openjdk
 )
 
 # Download packages and dependencies
