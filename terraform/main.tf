@@ -174,6 +174,11 @@ resource "aws_instance" "confluent_instances" {
   associate_public_ip_address = false
   key_name                    = data.aws_key_pair.confluent_key_pair.key_name
 
+  root_block_device {
+    volume_size = 256   # Change this to your desired size in GB
+    volume_type = "gp3" # Can be gp2, gp3, io1, etc.
+  }
+
   tags = {
     Name = "${var.user}-confluent-node-${count.index + 1}"
   }
@@ -188,6 +193,11 @@ resource "aws_instance" "control_node" {
   vpc_security_group_ids      = [aws_security_group.confluent_sg.id]
   associate_public_ip_address = false # Bastion needs public access
   key_name                    = data.aws_key_pair.confluent_key_pair.key_name
+
+  root_block_device {
+    volume_size = 256   # Change this to your desired size in GB
+    volume_type = "gp3" # Can be gp2, gp3, io1, etc.
+  }
 
   tags = {
     Name = "${var.user}-confluent-control-node"
