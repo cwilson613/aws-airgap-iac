@@ -56,9 +56,26 @@ resource "aws_route_table_association" "public_subnet_association" {
   route_table_id = aws_route_table.public_route_table.id
 }
 
+# Create a route table for the private subnet (no internet route)
+resource "aws_route_table" "private_route_table" {
+  vpc_id = aws_vpc.confluent_vpc.id
+
+  # No default route to the internet
+  tags = {
+    Name = "private_route_table"
+  }
+}
+
+# Associate the private subnet with its route table
+resource "aws_route_table_association" "private_subnet_association" {
+  subnet_id      = aws_subnet.private_subnet.id
+  route_table_id = aws_route_table.private_route_table.id
+}
+
+
 # Create a new security group for the bastion host
-resource "aws_security_group" "bastion_sg" {
-  name        = "bastion_sg"
+resource "aws_security_group" "connected_bastion_sg" {
+  name        = "connected_bastion_sg"
   description = "Security group for Bastion host"
   vpc_id      = aws_vpc.confluent_vpc.id
 
@@ -81,7 +98,7 @@ resource "aws_security_group" "bastion_sg" {
 
   # Allow outbound internet access from the bastion host
   egress {
-    description = "Allow internet access"
+    description = "Allow all outbound"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -89,7 +106,7 @@ resource "aws_security_group" "bastion_sg" {
   }
 
   tags = {
-    Name = "bastion_sg"
+    Name = "connected_bastion_sg"
   }
 }
 
@@ -100,46 +117,28 @@ resource "aws_security_group" "confluent_sg" {
   description = "Security group for Confluent instances"
   vpc_id      = aws_vpc.confluent_vpc.id
 
-  # Allow SSH only from the Bastion host
+  # Allow all internal traffic (private and public subnet origin)
   ingress {
-    description = "SSH from Bastion host"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [var.public_subnet_cidr]
-  }
-
-  # Allow all traffic within the security group
-  ingress {
-    description = "Allow all within SG"
+    description = "SSH from all subnets"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    self        = true
+    cidr_blocks = [var.public_subnet_cidr, var.private_subnet_cidr]
   }
 
-  # Egress rules to deny internet access (airgapped)
+  # Egress open without internet access (airgapped)
   egress {
-    description      = "Deny all outbound traffic"
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = []
-    ipv6_cidr_blocks = []
-    prefix_list_ids  = []
-    security_groups  = []
+    description = "Allow outbound access"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = {
     Name = "confluent_sg"
   }
 }
-
-# # Generate a new private key
-# resource "tls_private_key" "confluent_key" {
-#   algorithm = "RSA"
-#   rsa_bits  = 4096
-# }
 
 # Create the AWS Key Pair using the generated private key
 data "aws_key_pair" "confluent_key_pair" {
@@ -154,63 +153,241 @@ data "local_file" "private_key" {
 
 }
 
-# # Use a null_resource with a local-exec provisioner to set the file permissions
-# resource "null_resource" "set_key_permissions" {
-#   depends_on = [local_file.private_key]
+# EC2 Instances per Role
 
-#   provisioner "local-exec" {
-#     command = "chmod 600 ${data.local_file.private_key.filename}"
-#   }
-# }
-
-# Create EC2 instances
-resource "aws_instance" "confluent_instances" {
-  count = var.instance_count
-  #   ami                         = "ami-0c94855ba95c71c99" # Amazon Linux 2 AMI
-  ami                         = "ami-09efeab7e5627931e" # Oracle Linux AMI
-  instance_type               = var.instance_type
+# Kafka Controller
+resource "aws_instance" "kafka_controller" {
+  ami                         = var.oracle_ami_id
+  instance_type               = var.kafka_controller_instance_type # 32 vCPUs, 64GB RAM
   subnet_id                   = aws_subnet.private_subnet.id
   vpc_security_group_ids      = [aws_security_group.confluent_sg.id]
   associate_public_ip_address = false
   key_name                    = data.aws_key_pair.confluent_key_pair.key_name
 
   root_block_device {
-    volume_size = 256   # Change this to your desired size in GB
-    volume_type = "gp3" # Can be gp2, gp3, io1, etc.
+    volume_size = 2048 # 4TB SSD
+    volume_type = "gp3"
+  }
+
+  # Remove internet-required yum repos using remote-exec
+  provisioner "remote-exec" {
+    inline = [
+      "sudo systemctl stop firewalld",
+      "sudo systemctl disable firewalld --now",
+      "sudo rm -f /etc/yum.repos.d/*.repo",
+      "sudo yum clean all"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = data.local_file.private_key.content # Use the generated key for connecting
+      host        = self.private_ip
+
+      bastion_host        = aws_instance.bastion.public_ip
+      bastion_user        = "ec2-user"                          # User for the bastion host
+      bastion_private_key = data.local_file.private_key.content # Private key for the bastion host
+    }
   }
 
   tags = {
-    Name = "${var.user}-confluent-node-${count.index + 1}"
+    Name = "${var.user}-kafka-controller"
+    Role = "kafka_controller"
   }
 }
 
-# Create a Bastion EC2 instance (Amazon Linux)
-resource "aws_instance" "control_node" {
-  ami = "ami-09efeab7e5627931e"
-  #   ami                         = "ami-0c94855ba95c71c99" # Amazon Linux 2 AMI
-  instance_type               = "t2.large"
+# Kafka Broker
+resource "aws_instance" "kafka_broker" {
+  ami                         = var.oracle_ami_id
+  instance_type               = var.kafka_broker_instance_type # 4 vCPUs, 32GB RAM
   subnet_id                   = aws_subnet.private_subnet.id
   vpc_security_group_ids      = [aws_security_group.confluent_sg.id]
-  associate_public_ip_address = false # Bastion needs public access
+  associate_public_ip_address = false
   key_name                    = data.aws_key_pair.confluent_key_pair.key_name
 
   root_block_device {
-    volume_size = 256   # Change this to your desired size in GB
-    volume_type = "gp3" # Can be gp2, gp3, io1, etc.
+    volume_size = 500 # 500GB SSD
+    volume_type = "gp3"
+  }
+
+  # Remove internet-required yum repos using remote-exec
+  provisioner "remote-exec" {
+    inline = [
+      "sudo systemctl stop firewalld",
+      "sudo systemctl disable firewalld --now",
+      "sudo rm -f /etc/yum.repos.d/*.repo",
+      "sudo yum clean all"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = data.local_file.private_key.content # Use the generated key for connecting
+      host        = self.private_ip
+
+      bastion_host        = aws_instance.bastion.public_ip
+      bastion_user        = "ec2-user"                          # User for the bastion host
+      bastion_private_key = data.local_file.private_key.content # Private key for the bastion host
+    }
   }
 
   tags = {
-    Name = "${var.user}-confluent-control-node"
+    Name = "${var.user}-kafka-broker"
+    Role = "kafka_broker"
+  }
+}
+
+# Control Center
+resource "aws_instance" "control_center" {
+  ami                         = var.oracle_ami_id
+  instance_type               = var.control_instance_type # 8 vCPUs, 32GB RAM
+  subnet_id                   = aws_subnet.private_subnet.id
+  vpc_security_group_ids      = [aws_security_group.confluent_sg.id]
+  associate_public_ip_address = false
+  key_name                    = data.aws_key_pair.confluent_key_pair.key_name
+
+  root_block_device {
+    volume_size = 300 # 300GB SSD
+    volume_type = "gp3"
+  }
+
+  # Provisioner to copy the private key to the bastion host
+  # 
+  #   
+  provisioner "file" {
+    source      = data.local_file.private_key.filename
+    destination = "/home/ec2-user/cog-team.pem"
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = data.local_file.private_key.content # Use the generated key for connecting
+      host        = self.private_ip
+
+      bastion_host        = aws_instance.bastion.public_ip
+      bastion_user        = "ec2-user"                          # User for the bastion host
+      bastion_private_key = data.local_file.private_key.content # Private key for the bastion host
+    }
+  }
+
+  # Remove internet-required yum repos using remote-exec
+  # Add private key to control node for SSH
+  provisioner "remote-exec" {
+    inline = [
+      "chmod 600 /home/ec2-user/cog-team.pem",
+      "chown ec2-user:ec2-user /home/ec2-user/cog-team.pem",
+      "sudo systemctl stop firewalld",
+      "sudo systemctl disable firewalld --now",
+      "sudo rm -f /etc/yum.repos.d/*.repo",
+      "sudo yum clean all"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = data.local_file.private_key.content # Use the generated key for connecting
+      host        = self.private_ip
+
+      bastion_host        = aws_instance.bastion.public_ip
+      bastion_user        = "ec2-user"                          # User for the bastion host
+      bastion_private_key = data.local_file.private_key.content # Private key for the bastion host
+    }
+  }
+
+  tags = {
+    Name = "${var.user}-control-center"
+    Role = "control_center"
+  }
+}
+
+# Schema Registry
+resource "aws_instance" "schema_registry" {
+  ami                         = var.oracle_ami_id
+  instance_type               = var.schema_registry_instance_type # 16 vCPUs, 32GB RAM
+  subnet_id                   = aws_subnet.private_subnet.id
+  vpc_security_group_ids      = [aws_security_group.confluent_sg.id]
+  associate_public_ip_address = false
+  key_name                    = data.aws_key_pair.confluent_key_pair.key_name
+
+  root_block_device {
+    volume_size = 300 # 300GB SSD
+    volume_type = "gp3"
+  }
+
+  # Remove internet-required yum repos using remote-exec
+  provisioner "remote-exec" {
+    inline = [
+      "sudo systemctl stop firewalld",
+      "sudo systemctl disable firewalld --now",
+      "sudo rm -f /etc/yum.repos.d/*.repo",
+      "sudo yum clean all"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = data.local_file.private_key.content # Use the generated key for connecting
+      host        = self.private_ip
+
+      bastion_host        = aws_instance.bastion.public_ip
+      bastion_user        = "ec2-user"                          # User for the bastion host
+      bastion_private_key = data.local_file.private_key.content # Private key for the bastion host
+    }
+  }
+
+  tags = {
+    Name = "${var.user}-schema-registry"
+    Role = "schema_registry"
+  }
+}
+
+# ksqlDB
+resource "aws_instance" "ksql" {
+  ami                         = var.oracle_ami_id
+  instance_type               = var.ksql_instance_type # 8 vCPUs, 32GB RAM
+  subnet_id                   = aws_subnet.private_subnet.id
+  vpc_security_group_ids      = [aws_security_group.confluent_sg.id]
+  associate_public_ip_address = false
+  key_name                    = data.aws_key_pair.confluent_key_pair.key_name
+
+  root_block_device {
+    volume_size = 300 # 300GB SSD
+    volume_type = "gp3"
+  }
+
+  # Remove internet-required yum repos using remote-exec
+  provisioner "remote-exec" {
+    inline = [
+      "sudo systemctl stop firewalld",
+      "sudo systemctl disable firewalld --now",
+      "sudo rm -f /etc/yum.repos.d/*.repo",
+      "sudo yum clean all"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = data.local_file.private_key.content # Use the generated key for connecting
+      host        = self.private_ip
+
+      bastion_host        = aws_instance.bastion.public_ip
+      bastion_user        = "ec2-user"                          # User for the bastion host
+      bastion_private_key = data.local_file.private_key.content # Private key for the bastion host
+    }
+  }
+
+  tags = {
+    Name = "${var.user}-ksql"
+    Role = "ksql"
   }
 }
 
 # Create a Bastion EC2 instance (Amazon Linux)
-resource "aws_instance" "distro_server" {
-  ami = "ami-09efeab7e5627931e"
-  #   ami                         = "ami-0c94855ba95c71c99" # Amazon Linux 2 AMI
-  instance_type               = "t2.medium"
+resource "aws_instance" "bastion" {
+  ami                         = var.oracle_ami_id
+  instance_type               = var.bastion_instance_type
   subnet_id                   = aws_subnet.public_subnet.id
-  vpc_security_group_ids      = [aws_security_group.bastion_sg.id]
+  vpc_security_group_ids      = [aws_security_group.connected_bastion_sg.id]
   associate_public_ip_address = true # Bastion needs public access
   key_name                    = data.aws_key_pair.confluent_key_pair.key_name
 
@@ -219,7 +396,7 @@ resource "aws_instance" "distro_server" {
     volume_type = "gp3" # Can be gp2, gp3, io1, etc.
   }
 
-  # Provisioners to copy the private key to the bastion host
+  # Provisioner to copy the private key to the bastion host
   provisioner "file" {
     source      = data.local_file.private_key.filename
     destination = "/home/ec2-user/cog-team.pem"
@@ -232,7 +409,7 @@ resource "aws_instance" "distro_server" {
     }
   }
 
-  # Provisioners to copy the private key to the bastion host
+  # Provisioner to copy the dependency collection script to the bastion host
   provisioner "file" {
     source      = "${path.module}/../scripts/confluent-deps.sh"
     destination = "/home/ec2-user/confluent-deps.sh"

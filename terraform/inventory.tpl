@@ -1,0 +1,15 @@
+kafka_controller:
+  hosts:
+    ${kafka_controller_dns}:
+kafka_broker:
+  hosts:
+    ${kafka_broker_dns}:
+control_center:
+  hosts:
+    ${control_center_dns}:
+schema_registry:
+  hosts:
+    ${schema_registry_dns}:
+ksql:
+  hosts:
+    ${ksql_dns}:
