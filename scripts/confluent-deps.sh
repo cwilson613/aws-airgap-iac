@@ -15,7 +15,7 @@ CDN_URL="https://d2p6pa21dvn84.cloudfront.net/api/plugins/confluentinc"
 
 # Define packages to download from standard Oracle Linux repos
 PACKAGES=(
-    oracle-epel-release-el9
+    oracle-epel-release-el8
     ansible-core
     tar
     python3

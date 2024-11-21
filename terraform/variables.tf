@@ -5,9 +5,9 @@ variable "aws_region" {
 }
 
 variable "oracle_ami_id" {
-  description = "AMI ID for Oracle Linux 9"
+  description = "AMI ID for Oracle Linux 8"
   type        = string
-  default     = "ami-09efeab7e5627931e" # Oracle Linux AMI
+  default     = "ami-087d72c9f3d1fd5be" # Oracle Linux AMI
 }
 
 variable "bastion_instance_type" {
@@ -81,4 +81,40 @@ variable "allowed_ssh_cidr" {
 variable "user" {
   description = "User for naming differentiation"
   type        = string
+}
+
+variable "bastion_instance_count" {
+  description = "Number of bastion instances to create"
+  type        = number
+  default     = 1
+}
+
+variable "kafka_controller_instance_count" {
+  description = "Number of Kafka Controller instances to create"
+  type        = number
+  default     = 1
+}
+
+variable "kafka_broker_instance_count" {
+  description = "Number of Kafka Broker instances to create"
+  type        = number
+  default     = 3
+}
+
+variable "ksql_instance_count" {
+  description = "Number of ksqlDB instances to create"
+  type        = number
+  default     = 1
+}
+
+variable "control_center_instance_count" {
+  description = "Number of Control Center instances to create"
+  type        = number
+  default     = 1
+}
+
+variable "schema_registry_instance_count" {
+  description = "Number of Schema Registry instances to create"
+  type        = number
+  default     = 1
 }

@@ -1,15 +1,25 @@
 kafka_controller:
   hosts:
-    ${kafka_controller_dns}:
+%{ for dns in kafka_controller_dns ~}
+    ${dns}:
+%{ endfor ~}
 kafka_broker:
   hosts:
-    ${kafka_broker_dns}:
+%{ for dns in kafka_broker_dns ~}
+    ${dns}:
+%{ endfor ~}
 control_center:
   hosts:
-    ${control_center_dns}:
+%{ for dns in control_center_dns ~}
+    ${dns}:
+%{ endfor ~}
 schema_registry:
   hosts:
-    ${schema_registry_dns}:
+%{ for dns in schema_registry_dns ~}
+    ${dns}:
+%{ endfor ~}
 ksql:
   hosts:
-    ${ksql_dns}:
+%{ for dns in ksql_dns ~}
+    ${dns}:
+%{ endfor ~}
