@@ -18,6 +18,11 @@ output "kafka_controller_ips" {
   value       = aws_instance.kafka_controller[*].private_ip
 }
 
+output "zookeeper_ips" {
+  description = "Private IPs of the zookeeper Nodes"
+  value       = aws_instance.zookeeper[*].private_ip
+}
+
 output "schema_registry_ips" {
   description = "Private IPs of the Schema Registry Nodes"
   value       = aws_instance.schema_registry[*].private_ip
@@ -39,6 +44,9 @@ output "ansible_inventory" {
     kafka_controller = {
       hosts = aws_instance.kafka_controller[*].private_dns
     }
+    zookeeper = {
+      hosts = aws_instance.zookeeper[*].private_dns
+    }
     kafka_broker = {
       hosts = aws_instance.kafka_broker[*].private_dns
     }
@@ -58,6 +66,7 @@ output "ansible_inventory" {
 output "formatted_inventory" {
   value = templatefile("${path.module}/inventory.tpl", {
     kafka_controller_dns = aws_instance.kafka_controller[*].private_dns
+    zookeeper_dns        = aws_instance.zookeeper[*].private_dns
     kafka_broker_dns     = aws_instance.kafka_broker[*].private_dns
     control_center_dns   = aws_instance.control_center[*].private_dns
     schema_registry_dns  = aws_instance.schema_registry[*].private_dns

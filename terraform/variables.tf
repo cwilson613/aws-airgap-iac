@@ -10,6 +10,12 @@ variable "oracle_ami_id" {
   default     = "ami-087d72c9f3d1fd5be" # Oracle Linux AMI
 }
 
+variable "is_air_gapped" {
+  description = "Toggle for air-gapped environment. Set to true for air-gapped, false for internet access."
+  type        = bool
+  default     = false
+}
+
 variable "bastion_instance_type" {
   description = "EC2 instance type"
   type        = string
@@ -34,6 +40,11 @@ variable "kafka_broker_instance_type" {
   default     = "m5.xlarge"
 }
 
+variable "zookeeper_instance_type" {
+  description = "EC2 instance type"
+  type        = string
+  default     = "m5.8xlarge"
+}
 variable "kafka_controller_instance_type" {
   description = "EC2 instance type"
   type        = string
@@ -92,7 +103,13 @@ variable "bastion_instance_count" {
 variable "kafka_controller_instance_count" {
   description = "Number of Kafka Controller instances to create"
   type        = number
-  default     = 1
+  default     = 0
+}
+
+variable "zookeeper_instance_count" {
+  description = "Number of zookeeper instances to create"
+  type        = number
+  default     = 3
 }
 
 variable "kafka_broker_instance_count" {

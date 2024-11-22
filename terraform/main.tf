@@ -8,6 +8,22 @@ resource "aws_vpc" "confluent_vpc" {
   }
 }
 
+#create NAT Gateway
+resource "aws_eip" "nat" {
+  count = var.is_air_gapped ? 0 : 1
+  domain = "vpc"
+}
+
+resource "aws_nat_gateway" "nat" {
+  count         = var.is_air_gapped ? 0 : 1
+  allocation_id = aws_eip.nat[0].id
+  subnet_id     = aws_subnet.public_subnet.id
+
+  tags = {
+    Name = "nat_gateway"
+  }
+}
+
 # Create a private subnet
 resource "aws_subnet" "private_subnet" {
   vpc_id                  = aws_vpc.confluent_vpc.id
@@ -29,7 +45,10 @@ resource "aws_subnet" "public_subnet" {
 }
 
 # Create an Internet Gateway
+
 resource "aws_internet_gateway" "confluent_igw" {
+  count = var.is_air_gapped ? 0 : 1
+
   vpc_id = aws_vpc.confluent_vpc.id
   tags = {
     Name = "confluent_igw"
@@ -37,12 +56,18 @@ resource "aws_internet_gateway" "confluent_igw" {
 }
 
 # Create a route table for public access
+
 resource "aws_route_table" "public_route_table" {
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = var.is_air_gapped ? null : aws_internet_gateway.confluent_igw[0].id
+  }
+
   vpc_id = aws_vpc.confluent_vpc.id
 
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.confluent_igw.id
+    gateway_id = aws_internet_gateway.confluent_igw[0].id
   }
 
   tags = {
@@ -51,13 +76,21 @@ resource "aws_route_table" "public_route_table" {
 }
 
 # Associate the public subnet with the route table
+
 resource "aws_route_table_association" "public_subnet_association" {
+
   subnet_id      = aws_subnet.public_subnet.id
   route_table_id = aws_route_table.public_route_table.id
 }
 
 # Create a route table for the private subnet (no internet route)
+
 resource "aws_route_table" "private_route_table" {
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = var.is_air_gapped ? null : aws_nat_gateway.nat[0].id
+  }
+
   vpc_id = aws_vpc.confluent_vpc.id
 
   # No default route to the internet
@@ -67,7 +100,9 @@ resource "aws_route_table" "private_route_table" {
 }
 
 # Associate the private subnet with its route table
+
 resource "aws_route_table_association" "private_subnet_association" {
+
   subnet_id      = aws_subnet.private_subnet.id
   route_table_id = aws_route_table.private_route_table.id
 }
@@ -112,23 +147,22 @@ resource "aws_security_group" "connected_bastion_sg" {
 
 # Create a security group
 # Modify security group for Confluent instances to allow SSH only from the Bastion host
+
 resource "aws_security_group" "confluent_sg" {
   name        = "confluent_sg"
   description = "Security group for Confluent instances"
   vpc_id      = aws_vpc.confluent_vpc.id
 
-  # Allow all internal traffic (private and public subnet origin)
   ingress {
-    description = "SSH from all subnets"
+    description = "Internal communication"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = [var.public_subnet_cidr, var.private_subnet_cidr]
+    cidr_blocks = [var.private_subnet_cidr, var.public_subnet_cidr]
   }
 
-  # Egress open without internet access (airgapped)
   egress {
-    description = "Allow outbound access"
+    description = "Allow all outbound traffic"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -139,6 +173,7 @@ resource "aws_security_group" "confluent_sg" {
     Name = "confluent_sg"
   }
 }
+
 
 # Create the AWS Key Pair using the generated private key
 data "aws_key_pair" "confluent_key_pair" {
@@ -154,6 +189,48 @@ data "local_file" "private_key" {
 }
 
 # EC2 Instances per Role
+
+# Kafka Controller
+resource "aws_instance" "zookeeper" {
+  count                       = var.zookeeper_instance_count
+  ami                         = var.oracle_ami_id
+  instance_type               = var.zookeeper_instance_type # 32 vCPUs, 64GB RAM
+  subnet_id                   = aws_subnet.public_subnet.id
+  vpc_security_group_ids      = [aws_security_group.confluent_sg.id]
+  associate_public_ip_address = true
+  key_name                    = data.aws_key_pair.confluent_key_pair.key_name
+
+  root_block_device {
+    volume_size = 2048 # 4TB SSD
+    volume_type = "gp3"
+  }
+
+  # Remove internet-required yum repos using remote-exec
+  provisioner "remote-exec" {
+    inline = [
+      "sudo systemctl stop firewalld",
+      "sudo systemctl disable firewalld --now",
+      "sudo rm -f /etc/yum.repos.d/*.repo",
+      "sudo yum clean all"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = data.local_file.private_key.content # Use the generated key for connecting
+      host        = self.private_ip
+
+      bastion_host        = aws_instance.bastion[0].public_ip
+      bastion_user        = "ec2-user"                          # User for the bastion host
+      bastion_private_key = data.local_file.private_key.content # Private key for the bastion host
+    }
+  }
+
+  tags = {
+    Name = "${var.user}-zookeeper-${count.index + 1}"
+    Role = "zookeeper"
+  }
+}
 
 # Kafka Controller
 resource "aws_instance" "kafka_controller" {
