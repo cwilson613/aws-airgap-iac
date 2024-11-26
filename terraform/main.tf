@@ -360,8 +360,8 @@ resource "aws_instance" "control_center" {
       "chown ec2-user:ec2-user /home/ec2-user/cog-team.pem",
       "sudo systemctl stop firewalld",
       "sudo systemctl disable firewalld --now",
-      #"sudo rm -f /etc/yum.repos.d/*.repo",
-      #"sudo yum clean all"
+      "sudo rm -f /etc/yum.repos.d/*.repo",
+      "sudo yum clean all"
     ]
 
     connection {
