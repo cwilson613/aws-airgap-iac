@@ -13,7 +13,7 @@ variable "oracle_ami_id" {
 variable "is_air_gapped" {
   description = "Toggle for air-gapped environment. Set to true for air-gapped, false for internet access."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "bastion_instance_type" {

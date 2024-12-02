@@ -78,17 +78,18 @@ resource "aws_route_table_association" "public_subnet_association" {
   route_table_id = aws_route_table.public_route_table.id
 }
 
-# Create a route table for the private subnet (no internet route)
-
+# Create a route table for the private subnet (no internet route)resource "aws_route_table" "private_route_table" {
 resource "aws_route_table" "private_route_table" {
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = var.is_air_gapped ? null : aws_nat_gateway.nat[0].id
-  }
-
   vpc_id = aws_vpc.confluent_vpc.id
 
-  # No default route to the internet
+  dynamic "route" {
+    for_each = var.is_air_gapped ? [] : [aws_nat_gateway.nat[0].id]
+    content {
+      cidr_block = "0.0.0.0/0"
+      nat_gateway_id = route.value
+    }
+  }
+
   tags = {
     Name = "private_route_table"
   }
@@ -468,15 +469,15 @@ resource "aws_instance" "bastion" {
   instance_type               = var.bastion_instance_type
   subnet_id                   = aws_subnet.public_subnet.id
   vpc_security_group_ids      = [aws_security_group.connected_bastion_sg.id]
-  associate_public_ip_address = true # Bastion needs public access
+  associate_public_ip_address = true
   key_name                    = data.aws_key_pair.confluent_key_pair.key_name
 
   root_block_device {
-    volume_size = 256   # Change this to your desired size in GB
-    volume_type = "gp3" # Can be gp2, gp3, io1, etc.
+    volume_size = 256
+    volume_type = "gp3"
   }
 
-  # Provisioner to copy the private key to the bastion host
+  # Copy private key to bastion
   provisioner "file" {
     source      = data.local_file.private_key.filename
     destination = "/home/ec2-user/cog-team.pem"
@@ -484,25 +485,27 @@ resource "aws_instance" "bastion" {
     connection {
       type        = "ssh"
       user        = "ec2-user"
-      private_key = data.local_file.private_key.content # Use the generated key for connecting
+      private_key = data.local_file.private_key.content
       host        = self.public_ip
+      timeout     = "5m" # Increase timeout to handle delays
     }
   }
 
-  # Provisioner to copy the dependency collection script to the bastion host
-  provisioner "file" {
-    source      = "${path.module}/../scripts/confluent-deps.sh"
-    destination = "/home/ec2-user/confluent-deps.sh"
+  # Copy dependency script to bastion
+  #provisioner "file" {
+    #source      = "${path.module}/../scripts/confluent-deps.sh"
+    #destination = "/home/ec2-user/confluent-deps.sh"
 
-    connection {
-      type        = "ssh"
-      user        = "ec2-user"
-      private_key = data.local_file.private_key.content # Use the generated key for connecting
-      host        = self.public_ip
-    }
-  }
+    #connection {
+      #type        = "ssh"
+      #user        = "ec2-user"
+      #private_key = data.local_file.private_key.content
+      #host        = self.public_ip
+      #timeout     = "5m"
+    #}
+  #}
 
-  # Set permissions on the key using remote-exec
+  # Set permissions on private key
   provisioner "remote-exec" {
     inline = [
       "chmod 600 /home/ec2-user/cog-team.pem",
@@ -512,8 +515,35 @@ resource "aws_instance" "bastion" {
     connection {
       type        = "ssh"
       user        = "ec2-user"
-      private_key = data.local_file.private_key.content # Use the generated key for connecting
+      private_key = data.local_file.private_key.content
       host        = self.public_ip
+      timeout     = "5m"
+    }
+  }
+
+  # Prepare the bastion environment
+  provisioner "remote-exec" {
+    inline = [
+      "#!/bin/bash",
+      "set -e",
+      "sudo yum update -y",
+      "sudo yum install -y epel-release",
+      "sudo yum install -y wget curl tar unzip git java-11-openjdk java-11-openjdk-devel net-tools bind-utils telnet nc jq vim python3-pip gcc libffi-devel python3-devel openssl-devel",
+      "sudo alternatives --set python3 /usr/bin/python3.6",
+      "sudo pip3 install --upgrade pip",
+      "sudo pip3 install ansible==2.14.0",
+      "sudo pip3 install jmespath",
+      "sudo systemctl stop firewalld",
+      "sudo systemctl disable firewalld",
+      "ansible --version"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = data.local_file.private_key.content
+      host        = self.public_ip
+      timeout     = "10m"
     }
   }
 
