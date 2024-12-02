@@ -48,7 +48,6 @@ resource "aws_subnet" "public_subnet" {
 
 resource "aws_internet_gateway" "confluent_igw" {
   count = var.is_air_gapped ? 0 : 1
-
   vpc_id = aws_vpc.confluent_vpc.id
   tags = {
     Name = "confluent_igw"
@@ -58,25 +57,21 @@ resource "aws_internet_gateway" "confluent_igw" {
 # Create a route table for public access
 
 resource "aws_route_table" "public_route_table" {
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = var.is_air_gapped ? null : aws_internet_gateway.confluent_igw[0].id
-  }
-
   vpc_id = aws_vpc.confluent_vpc.id
 
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.confluent_igw[0].id
+  dynamic "route" {
+    for_each = var.is_air_gapped ? [] : [aws_internet_gateway.confluent_igw[0].id]
+    content {
+      cidr_block = "0.0.0.0/0"
+      gateway_id = route.value
+    }
   }
-
   tags = {
     Name = "public_route_table"
   }
 }
 
 # Associate the public subnet with the route table
-
 resource "aws_route_table_association" "public_subnet_association" {
 
   subnet_id      = aws_subnet.public_subnet.id
@@ -195,7 +190,7 @@ resource "aws_instance" "zookeeper" {
   count                       = var.zookeeper_instance_count
   ami                         = var.oracle_ami_id
   instance_type               = var.zookeeper_instance_type # 32 vCPUs, 64GB RAM
-  subnet_id                   = aws_subnet.public_subnet.id
+  subnet_id                   = aws_subnet.private_subnet.id
   vpc_security_group_ids      = [aws_security_group.confluent_sg.id]
   associate_public_ip_address = false
   key_name                    = data.aws_key_pair.confluent_key_pair.key_name
@@ -237,7 +232,7 @@ resource "aws_instance" "kafka_controller" {
   count                       = var.kafka_controller_instance_count
   ami                         = var.oracle_ami_id
   instance_type               = var.kafka_controller_instance_type # 32 vCPUs, 64GB RAM
-  subnet_id                   = aws_subnet.public_subnet.id
+  subnet_id                   = aws_subnet.private_subnet.id
   vpc_security_group_ids      = [aws_security_group.confluent_sg.id]
   associate_public_ip_address = false
   key_name                    = data.aws_key_pair.confluent_key_pair.key_name
@@ -279,7 +274,7 @@ resource "aws_instance" "kafka_broker" {
   count                       = var.kafka_broker_instance_count
   ami                         = var.oracle_ami_id
   instance_type               = var.kafka_broker_instance_type # 4 vCPUs, 32GB RAM
-  subnet_id                   = aws_subnet.public_subnet.id
+  subnet_id                   = aws_subnet.private_subnet.id
   vpc_security_group_ids      = [aws_security_group.confluent_sg.id]
   associate_public_ip_address = false
   key_name                    = data.aws_key_pair.confluent_key_pair.key_name
@@ -323,7 +318,7 @@ resource "aws_instance" "control_center" {
   count                       = var.control_center_instance_count
   ami                         = var.oracle_ami_id
   instance_type               = var.control_instance_type # 8 vCPUs, 32GB RAM
-  subnet_id                   = aws_subnet.public_subnet.id
+  subnet_id                   = aws_subnet.private_subnet.id
   vpc_security_group_ids      = [aws_security_group.confluent_sg.id]
   associate_public_ip_address = false
   key_name                    = data.aws_key_pair.confluent_key_pair.key_name
@@ -387,7 +382,7 @@ resource "aws_instance" "schema_registry" {
   count                       = var.schema_registry_instance_count
   ami                         = var.oracle_ami_id
   instance_type               = var.schema_registry_instance_type # 16 vCPUs, 32GB RAM
-  subnet_id                   = aws_subnet.public_subnet.id
+  subnet_id                   = aws_subnet.private_subnet.id
   vpc_security_group_ids      = [aws_security_group.confluent_sg.id]
   associate_public_ip_address = false
   key_name                    = data.aws_key_pair.confluent_key_pair.key_name
@@ -429,7 +424,7 @@ resource "aws_instance" "ksql" {
   count                       = var.ksql_instance_count
   ami                         = var.oracle_ami_id
   instance_type               = var.ksql_instance_type # 8 vCPUs, 32GB RAM
-  subnet_id                   = aws_subnet.public_subnet.id
+  subnet_id                   = aws_subnet.private_subnet.id
   vpc_security_group_ids      = [aws_security_group.confluent_sg.id]
   associate_public_ip_address = false
   key_name                    = data.aws_key_pair.confluent_key_pair.key_name
