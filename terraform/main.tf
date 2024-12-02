@@ -492,18 +492,18 @@ resource "aws_instance" "bastion" {
   }
 
   # Copy dependency script to bastion
-  #provisioner "file" {
-    #source      = "${path.module}/../scripts/confluent-deps.sh"
-    #destination = "/home/ec2-user/confluent-deps.sh"
+  provisioner "file" {
+    source      = "${path.module}/../scripts/bastion-prep.sh"
+    destination = "/home/ec2-user/confluent-deps.sh"
 
-    #connection {
-      #type        = "ssh"
-      #user        = "ec2-user"
-      #private_key = data.local_file.private_key.content
-      #host        = self.public_ip
-      #timeout     = "5m"
-    #}
-  #}
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = data.local_file.private_key.content
+      host        = self.public_ip
+      timeout     = "5m"
+    }
+  }
 
   # Set permissions on private key
   provisioner "remote-exec" {
@@ -521,21 +521,10 @@ resource "aws_instance" "bastion" {
     }
   }
 
-  # Prepare the bastion environment
+  # Clone confluent-airgap-bundler
   provisioner "remote-exec" {
     inline = [
-      "#!/bin/bash",
-      "set -e",
-      "sudo yum update -y",
-      "sudo yum install -y epel-release",
-      "sudo yum install -y wget curl tar unzip git java-11-openjdk java-11-openjdk-devel net-tools bind-utils telnet nc jq vim python3-pip gcc libffi-devel python3-devel openssl-devel",
-      "sudo alternatives --set python3 /usr/bin/python3.6",
-      "sudo pip3 install --upgrade pip",
-      "sudo pip3 install ansible==2.14.0",
-      "sudo pip3 install jmespath",
-      "sudo systemctl stop firewalld",
-      "sudo systemctl disable firewalld",
-      "ansible --version"
+      "git clone https://github.com/cwilson613/confluent-airgap-bundler.git",
     ]
 
     connection {
@@ -543,7 +532,7 @@ resource "aws_instance" "bastion" {
       user        = "ec2-user"
       private_key = data.local_file.private_key.content
       host        = self.public_ip
-      timeout     = "10m"
+      timeout     = "5m"
     }
   }
 
