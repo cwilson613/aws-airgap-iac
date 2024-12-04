@@ -16,6 +16,12 @@ variable "is_air_gapped" {
   default     = false
 }
 
+variable "repo_url" {
+  description = "The Git repository URL to clone"
+  type        = string
+  default     = "git@github.com:cwilson613/confluent-airgap-bundler.git"
+}
+
 variable "bastion_instance_type" {
   description = "EC2 instance type"
   type        = string
@@ -97,41 +103,41 @@ variable "user" {
 variable "bastion_instance_count" {
   description = "Number of bastion instances to create"
   type        = number
-  default     = 1
+  default     = 1 # 1
 }
 
 variable "kafka_controller_instance_count" {
   description = "Number of Kafka Controller instances to create"
   type        = number
-  default     = 0
+  default     = 0 # 0
 }
 
 variable "zookeeper_instance_count" {
   description = "Number of zookeeper instances to create"
   type        = number
-  default     = 3
+  default     = 0 # 3
 }
 
 variable "kafka_broker_instance_count" {
   description = "Number of Kafka Broker instances to create"
   type        = number
-  default     = 3
+  default     = 0 # 3
 }
 
 variable "ksql_instance_count" {
   description = "Number of ksqlDB instances to create"
   type        = number
-  default     = 1
+  default     = 0 # 1
 }
 
 variable "control_center_instance_count" {
   description = "Number of Control Center instances to create"
   type        = number
-  default     = 1
+  default     = 0 # 1
 }
 
 variable "schema_registry_instance_count" {
   description = "Number of Schema Registry instances to create"
   type        = number
-  default     = 1
+  default     = 0 # 1
 }

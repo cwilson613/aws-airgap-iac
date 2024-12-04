@@ -487,14 +487,30 @@ resource "aws_instance" "bastion" {
       user        = "ec2-user"
       private_key = data.local_file.private_key.content
       host        = self.public_ip
-      timeout     = "5m" # Increase timeout to handle delays
+      timeout     = "5m"
     }
   }
 
-  # Copy dependency script to bastion
+  # Provisioner to copy the dependency collection script to the bastion host
   provisioner "file" {
     source      = "${path.module}/../scripts/bastion-prep.sh"
-    destination = "/home/ec2-user/confluent-deps.sh"
+    destination = "/home/ec2-user/bastion-prep.sh"
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = data.local_file.private_key.content # Use the generated key for connecting
+      host        = self.public_ip
+    }
+  }
+  provisioner "remote-exec" {
+    inline = [
+      "sudo yum clean all",
+      "sudo yum install -y python3.9",
+      # "sudo alternatives --display python3",
+      "sudo alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 2",
+      "sudo alternatives --set python3 /usr/bin/python3.9"
+    ]
 
     connection {
       type        = "ssh"
@@ -504,12 +520,14 @@ resource "aws_instance" "bastion" {
       timeout     = "5m"
     }
   }
-
-  # Set permissions on private key
+  
+  # Add GitHub host key to known_hosts
   provisioner "remote-exec" {
     inline = [
-      "chmod 600 /home/ec2-user/cog-team.pem",
-      "chown ec2-user:ec2-user /home/ec2-user/cog-team.pem"
+      "mkdir -p ~/.ssh",
+      "ssh-keyscan -t ecdsa github.com >> ~/.ssh/known_hosts",
+      "chmod 600 ~/.ssh/known_hosts",
+      "chown ec2-user:ec2-user ~/.ssh/known_hosts"
     ]
 
     connection {
@@ -521,10 +539,18 @@ resource "aws_instance" "bastion" {
     }
   }
 
-  # Clone confluent-airgap-bundler
+  # Create SSH config file
   provisioner "remote-exec" {
     inline = [
-      "git clone https://github.com/cwilson613/confluent-airgap-bundler.git",
+      "cat <<EOF > ~/.ssh/config",
+      "Host github.com",
+      "    HostName github.com",
+      "    User git",
+      "    IdentityFile /home/ec2-user/cog-team.pem",
+      "    IdentitiesOnly yes",
+      "EOF",
+      "chmod 600 ~/.ssh/config",
+      "chown ec2-user:ec2-user ~/.ssh/config"
     ]
 
     connection {
@@ -536,7 +562,52 @@ resource "aws_instance" "bastion" {
     }
   }
 
+  # Generate the public key from the private key
+provisioner "remote-exec" {
+  inline = [
+    "chmod 600 /home/ec2-user/cog-team.pem",
+    "chown ec2-user:ec2-user /home/ec2-user/cog-team.pem"
+  ]
+
+  connection {
+    type        = "ssh"
+    user        = "ec2-user"
+    private_key = data.local_file.private_key.content
+    host        = self.public_ip
+    timeout     = "5m"
+  }
+}
+  # Install git
+  # provisioner "remote-exec" {
+  #   inline = [
+  #     "sudo yum update -y",       # Update package manager
+  #     "sudo yum install -y git"  # Install git
+  #   ]
+
+  #   connection {
+  #     type        = "ssh"
+  #     user        = "ec2-user"
+  #     private_key = data.local_file.private_key.content
+  #     host        = self.public_ip
+  #     timeout     = "5m"
+  #   }
+  # }
+  # Clone Git repository
+  # provisioner "remote-exec" {
+  #   inline = [
+  #     "git clone ${var.repo_url} /home/ec2-user/confluent-airgap-bundler",
+  #     "chown -R ec2-user:ec2-user /home/ec2-user/confluent-airgap-bundler"
+  #   ]
+
+  #   connection {
+  #     type        = "ssh"
+  #     user        = "ec2-user"
+  #     private_key = data.local_file.private_key.content
+  #     host        = self.public_ip
+  #     timeout     = "5m"
+  #   }
+  # }
   tags = {
-    Name = "${var.user}-bastion-${count.index + 1}"
+    Name = "${var.user}-confluent-bastion"
   }
 }

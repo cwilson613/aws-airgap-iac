@@ -1,0 +1,65 @@
+---
+- name: Prepare Bastion Host
+  hosts: bastion
+  become: true
+  gather_facts: false
+  tasks:
+    # # Step 1: Install Python manually if not present
+    # - name: Ensure Python is installed using raw module
+    #   raw: sudo yum install -y python39
+    #   changed_when: false
+
+    # - name: Ensure alternatives points to Python 3
+    #   raw: sudo alternatives --set python /usr/bin/python3
+    #   changed_when: false
+
+    # # Step 2: Gather facts after Python is installed
+    # - name: Gather facts
+    #   setup:
+
+    # - name: Ensure ansible-core is installed
+    #   yum:
+    #     name:
+    #       - ansible-core
+    #     state: latest
+    # Step 2: Install python3.9
+
+    # Step 3: Install build dependencies
+    - name: Install build dependencies
+      yum:
+        name:
+          - oracle-epel-release-el8
+          - ansible-core
+          # - python39
+          - python3-pip
+          - git
+          - unzip
+          - gcc
+          - make
+          - wget
+          - tar
+        state: present
+        use_backend: dnf
+
+    # # Step 4: Check if Python 3.9 alternatives is set
+    # - name: Check if Python 3.9 alternatives is set
+    #   shell: alternatives --display python3 | grep '/usr/bin/python3.9'
+    #   register: python39_alternative
+    #   ignore_errors: yes
+
+    # # Step 5: Add Python 3.9 to alternatives if not already set
+    # - name: Add Python 3.9 to alternatives
+    #   shell: alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 2
+    #   when: python39_alternative.rc != 0
+
+    # # Step 6: Set Python 3.9 as default
+    # - name: Set Python 3.9 as default
+    #   shell: alternatives --set python3 /usr/bin/python3.9
+
+    # # Step 7: Verify Python version
+    # - name: Verify Python version
+    #   shell: python3 --version
+    #   register: python_version
+
+    # - debug:
+    #     msg: "Python default version is {{ python_version.stdout }}"
