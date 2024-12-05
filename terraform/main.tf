@@ -491,10 +491,10 @@ resource "aws_instance" "bastion" {
     }
   }
 
-  # Provisioner to copy the dependency collection script to the bastion host
+  # Provisioner to copy the ansible yaml to the bastion host
   provisioner "file" {
-    source      = "${path.module}/../scripts/bastion-prep.sh"
-    destination = "/home/ec2-user/bastion-prep.sh"
+    source      = "${path.module}/../scripts/bastion-prep.yml"
+    destination = "/home/ec2-user/bastion-prep.yml"
 
     connection {
       type        = "ssh"
@@ -503,24 +503,50 @@ resource "aws_instance" "bastion" {
       host        = self.public_ip
     }
   }
-  provisioner "remote-exec" {
-    inline = [
-      "sudo yum clean all",
-      "sudo yum install -y python3.9",
-      # "sudo alternatives --display python3",
-      "sudo alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 2",
-      "sudo alternatives --set python3 /usr/bin/python3.9"
-    ]
+
+  # Provisioner to copy the ansible inventory to the bastion host
+  provisioner "file" {
+    source      = "${path.module}/../scripts/ansible_inventory.ini"
+    destination = "/home/ec2-user/ansible_inventory.ini"
 
     connection {
       type        = "ssh"
       user        = "ec2-user"
-      private_key = data.local_file.private_key.content
+      private_key = data.local_file.private_key.content # Use the generated key for connecting
       host        = self.public_ip
-      timeout     = "5m"
     }
   }
-  
+
+# Provisioner to copy the setup_bastion script to the bastion host
+provisioner "file" {
+  source      = "${path.module}/../scripts/setup_bastion.sh"
+  destination = "/home/ec2-user/setup_bastion.sh"
+
+  connection {
+    type        = "ssh"
+    user        = "ec2-user"
+    private_key = data.local_file.private_key.content
+    host        = self.public_ip
+    timeout     = "5m"
+  }
+}
+
+# Provisioner to run the setup_bastion script on the bastion host
+provisioner "remote-exec" {
+  inline = [
+    "chmod +x /home/ec2-user/setup_bastion.sh",
+    "./setup_bastion.sh"
+  ]
+
+  connection {
+    type        = "ssh"
+    user        = "ec2-user"
+    private_key = data.local_file.private_key.content
+    host        = self.public_ip
+    timeout     = "10m"
+  }
+}
+
   # Add GitHub host key to known_hosts
   provisioner "remote-exec" {
     inline = [
@@ -563,50 +589,36 @@ resource "aws_instance" "bastion" {
   }
 
   # Generate the public key from the private key
-provisioner "remote-exec" {
-  inline = [
-    "chmod 600 /home/ec2-user/cog-team.pem",
-    "chown ec2-user:ec2-user /home/ec2-user/cog-team.pem"
-  ]
+  provisioner "remote-exec" {
+    inline = [
+      "chmod 600 /home/ec2-user/cog-team.pem",
+      "chown ec2-user:ec2-user /home/ec2-user/cog-team.pem"
+    ]
 
-  connection {
-    type        = "ssh"
-    user        = "ec2-user"
-    private_key = data.local_file.private_key.content
-    host        = self.public_ip
-    timeout     = "5m"
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = data.local_file.private_key.content
+      host        = self.public_ip
+      timeout     = "5m"
+    }
   }
-}
-  # Install git
-  # provisioner "remote-exec" {
-  #   inline = [
-  #     "sudo yum update -y",       # Update package manager
-  #     "sudo yum install -y git"  # Install git
-  #   ]
 
-  #   connection {
-  #     type        = "ssh"
-  #     user        = "ec2-user"
-  #     private_key = data.local_file.private_key.content
-  #     host        = self.public_ip
-  #     timeout     = "5m"
-  #   }
-  # }
   # Clone Git repository
-  # provisioner "remote-exec" {
-  #   inline = [
-  #     "git clone ${var.repo_url} /home/ec2-user/confluent-airgap-bundler",
-  #     "chown -R ec2-user:ec2-user /home/ec2-user/confluent-airgap-bundler"
-  #   ]
+  provisioner "remote-exec" {
+    inline = [
+      "git clone ${var.repo_url} /home/ec2-user/confluent-airgap-bundler",
+      "chown -R ec2-user:ec2-user /home/ec2-user/confluent-airgap-bundler"
+    ]
 
-  #   connection {
-  #     type        = "ssh"
-  #     user        = "ec2-user"
-  #     private_key = data.local_file.private_key.content
-  #     host        = self.public_ip
-  #     timeout     = "5m"
-  #   }
-  # }
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = data.local_file.private_key.content
+      host        = self.public_ip
+      timeout     = "5m"
+    }
+  }
   tags = {
     Name = "${var.user}-confluent-bastion"
   }

@@ -1,0 +1,19 @@
+---
+- name: Prepare Bastion Host
+  hosts: local
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install build dependencies
+      yum:
+        name:
+          - oracle-epel-release-el8
+          - python3-pip
+          - git
+          - unzip
+          - gcc
+          - make
+          - wget
+          - tar
+        state: present
+        use_backend: dnf
