@@ -8,7 +8,7 @@ resource "aws_vpc" "confluent_vpc" {
   }
 }
 
-#create NAT Gateway
+# create NAT Gateway
 resource "aws_eip" "nat" {
   count = var.is_air_gapped ? 0 : 1
   domain = "vpc"
@@ -193,7 +193,7 @@ resource "aws_instance" "zookeeper" {
   instance_type               = var.zookeeper_instance_type # 32 vCPUs, 64GB RAM
   subnet_id                   = aws_subnet.private_subnet.id
   vpc_security_group_ids      = [aws_security_group.confluent_sg.id]
-  associate_public_ip_address = false
+  associate_public_ip_address = var.associate_public_ip
   key_name                    = data.aws_key_pair.confluent_key_pair.key_name
 
   root_block_device {
@@ -235,7 +235,7 @@ resource "aws_instance" "kafka_controller" {
   instance_type               = var.kafka_controller_instance_type # 32 vCPUs, 64GB RAM
   subnet_id                   = aws_subnet.private_subnet.id
   vpc_security_group_ids      = [aws_security_group.confluent_sg.id]
-  associate_public_ip_address = false
+  associate_public_ip_address = var.associate_public_ip
   key_name                    = data.aws_key_pair.confluent_key_pair.key_name
 
   root_block_device {
@@ -277,7 +277,7 @@ resource "aws_instance" "kafka_broker" {
   instance_type               = var.kafka_broker_instance_type # 4 vCPUs, 32GB RAM
   subnet_id                   = aws_subnet.private_subnet.id
   vpc_security_group_ids      = [aws_security_group.confluent_sg.id]
-  associate_public_ip_address = false
+  associate_public_ip_address = var.associate_public_ip
   key_name                    = data.aws_key_pair.confluent_key_pair.key_name
 
   root_block_device {
@@ -321,7 +321,7 @@ resource "aws_instance" "control_center" {
   instance_type               = var.control_instance_type # 8 vCPUs, 32GB RAM
   subnet_id                   = aws_subnet.private_subnet.id
   vpc_security_group_ids      = [aws_security_group.confluent_sg.id]
-  associate_public_ip_address = false
+  associate_public_ip_address = var.associate_public_ip
   key_name                    = data.aws_key_pair.confluent_key_pair.key_name
 
   root_block_device {
@@ -385,7 +385,7 @@ resource "aws_instance" "schema_registry" {
   instance_type               = var.schema_registry_instance_type # 16 vCPUs, 32GB RAM
   subnet_id                   = aws_subnet.private_subnet.id
   vpc_security_group_ids      = [aws_security_group.confluent_sg.id]
-  associate_public_ip_address = false
+  associate_public_ip_address = var.associate_public_ip
   key_name                    = data.aws_key_pair.confluent_key_pair.key_name
 
   root_block_device {
@@ -427,7 +427,7 @@ resource "aws_instance" "ksql" {
   instance_type               = var.ksql_instance_type # 8 vCPUs, 32GB RAM
   subnet_id                   = aws_subnet.private_subnet.id
   vpc_security_group_ids      = [aws_security_group.confluent_sg.id]
-  associate_public_ip_address = false
+  associate_public_ip_address = var.associate_public_ip
   key_name                    = data.aws_key_pair.confluent_key_pair.key_name
 
   root_block_device {

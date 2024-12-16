@@ -17,3 +17,13 @@
           - tar
         state: present
         use_backend: dnf
+
+# - name: Download Confluent Offline Install Tarball
+#   get_url:
+#     url: "https://confluent-tarballs.s3.us-east-1.amazonaws.com/confluent-offline-install-7.7.1-latest.tar.gz"
+#     dest: "/home/ec2-user/confluent-offline-install-7.7.1-latest.tar.gz"
+#     mode: '0644'
+#   retries: 3
+#   delay: 5
+#   register: download_result
+#   until: download_result is succeeded

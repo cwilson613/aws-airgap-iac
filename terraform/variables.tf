@@ -11,7 +11,13 @@ variable "oracle_ami_id" {
 }
 
 variable "is_air_gapped" {
-  description = "Toggle for air-gapped environment. Set to true for air-gapped, false for internet access."
+  description = "Determines if the environment is air-gapped. Set to true to disable internet resources."
+  type        = bool
+  default     = false  # Set default value as needed
+}
+
+variable "associate_public_ip" {
+  description = "Determines whether to associate a public IP address with the instance"
   type        = bool
   default     = false
 }
@@ -103,41 +109,41 @@ variable "user" {
 variable "bastion_instance_count" {
   description = "Number of bastion instances to create"
   type        = number
-  default     = 1 # 1
+  default     = 1
 }
 
 variable "kafka_controller_instance_count" {
   description = "Number of Kafka Controller instances to create"
   type        = number
-  default     = 0 # 0
+  default     = 0
 }
 
 variable "zookeeper_instance_count" {
   description = "Number of zookeeper instances to create"
   type        = number
-  default     = 0 # 3
+  default     = 0
 }
 
 variable "kafka_broker_instance_count" {
   description = "Number of Kafka Broker instances to create"
   type        = number
-  default     = 0 # 3
+  default     = 0
 }
 
 variable "ksql_instance_count" {
   description = "Number of ksqlDB instances to create"
   type        = number
-  default     = 0 # 1
+  default     = 0
 }
 
 variable "control_center_instance_count" {
   description = "Number of Control Center instances to create"
   type        = number
-  default     = 0 # 1
+  default     = 0
 }
 
 variable "schema_registry_instance_count" {
   description = "Number of Schema Registry instances to create"
   type        = number
-  default     = 0 # 1
+  default     = 0
 }
