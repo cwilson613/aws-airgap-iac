@@ -491,31 +491,31 @@ resource "aws_instance" "bastion" {
     }
   }
 
-  # Provisioner to copy the ansible yaml to the bastion host
-  provisioner "file" {
-    source      = "${path.module}/../scripts/bastion-prep.yml"
-    destination = "/home/ec2-user/bastion-prep.yml"
+  # # Provisioner to copy the ansible yaml to the bastion host
+  # provisioner "file" {
+  #   source      = "${path.module}/../scripts/bastion-prep.yml"
+  #   destination = "/home/ec2-user/bastion-prep.yml"
 
-    connection {
-      type        = "ssh"
-      user        = "ec2-user"
-      private_key = data.local_file.private_key.content # Use the generated key for connecting
-      host        = self.public_ip
-    }
-  }
+  #   connection {
+  #     type        = "ssh"
+  #     user        = "ec2-user"
+  #     private_key = data.local_file.private_key.content # Use the generated key for connecting
+  #     host        = self.public_ip
+  #   }
+  # }
 
-  # Provisioner to copy the ansible inventory to the bastion host
-  provisioner "file" {
-    source      = "${path.module}/../scripts/ansible_inventory.ini"
-    destination = "/home/ec2-user/ansible_inventory.ini"
+  # # Provisioner to copy the ansible inventory to the bastion host
+  # provisioner "file" {
+  #   source      = "${path.module}/../scripts/ansible_inventory.ini"
+  #   destination = "/home/ec2-user/ansible_inventory.ini"
 
-    connection {
-      type        = "ssh"
-      user        = "ec2-user"
-      private_key = data.local_file.private_key.content # Use the generated key for connecting
-      host        = self.public_ip
-    }
-  }
+  #   connection {
+  #     type        = "ssh"
+  #     user        = "ec2-user"
+  #     private_key = data.local_file.private_key.content # Use the generated key for connecting
+  #     host        = self.public_ip
+  #   }
+  # }
 
 # Provisioner to copy the setup_bastion script to the bastion host
 provisioner "file" {

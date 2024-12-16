@@ -7,13 +7,13 @@ associate_public_ip              = false
 
 repo_url                         = "git@github.com:cwilson613/confluent-airgap-bundler.git"
 
-bastion_instance_type            = "t2.large"
-ksql_instance_type               = "m5.xlarge"
-control_instance_type            = "m5.2xlarge"
-kafka_broker_instance_type       = "m5.xlarge"
-zookeeper_instance_type          = "m5.8xlarge"
-kafka_controller_instance_type   = "m5.8xlarge"
-schema_registry_instance_type    = "m5.4xlarge"
+bastion_instance_type            = "t3.micro"
+ksql_instance_type               = "t3.large"
+control_instance_type            = "t3.large"
+kafka_broker_instance_type       = "t3.large"
+zookeeper_instance_type          = "t3.medium"
+kafka_controller_instance_type   = "t3.medium"
+schema_registry_instance_type    = "t3.medium"
 
 vpc_cidr                         = "10.0.0.0/16"
 private_subnet_cidr              = "10.0.1.0/24"

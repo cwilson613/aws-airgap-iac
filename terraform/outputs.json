@@ -1,10 +1,137 @@
 {
+  "ansible_inventory": {
+    "sensitive": false,
+    "type": [
+      "object",
+      {
+        "control_center": [
+          "object",
+          {
+            "hosts": [
+              "tuple",
+              [
+                "string"
+              ]
+            ]
+          }
+        ],
+        "kafka_broker": [
+          "object",
+          {
+            "hosts": [
+              "tuple",
+              [
+                "string",
+                "string",
+                "string"
+              ]
+            ]
+          }
+        ],
+        "kafka_controller": [
+          "object",
+          {
+            "hosts": [
+              "tuple",
+              []
+            ]
+          }
+        ],
+        "ksql": [
+          "object",
+          {
+            "hosts": [
+              "tuple",
+              [
+                "string"
+              ]
+            ]
+          }
+        ],
+        "schema_registry": [
+          "object",
+          {
+            "hosts": [
+              "tuple",
+              [
+                "string"
+              ]
+            ]
+          }
+        ],
+        "zookeeper": [
+          "object",
+          {
+            "hosts": [
+              "tuple",
+              [
+                "string",
+                "string",
+                "string"
+              ]
+            ]
+          }
+        ]
+      }
+    ],
+    "value": {
+      "control_center": {
+        "hosts": [
+          "ip-10-0-1-170.ec2.internal"
+        ]
+      },
+      "kafka_broker": {
+        "hosts": [
+          "ip-10-0-1-43.ec2.internal",
+          "ip-10-0-1-213.ec2.internal",
+          "ip-10-0-1-226.ec2.internal"
+        ]
+      },
+      "kafka_controller": {
+        "hosts": []
+      },
+      "ksql": {
+        "hosts": [
+          "ip-10-0-1-207.ec2.internal"
+        ]
+      },
+      "schema_registry": {
+        "hosts": [
+          "ip-10-0-1-33.ec2.internal"
+        ]
+      },
+      "zookeeper": {
+        "hosts": [
+          "ip-10-0-1-7.ec2.internal",
+          "ip-10-0-1-142.ec2.internal",
+          "ip-10-0-1-163.ec2.internal"
+        ]
+      }
+    }
+  },
   "bastion_public_ip": {
     "sensitive": false,
     "type": "string",
-    "value": "44.192.252.188"
+    "value": "100.25.16.216"
   },
-  "private_ips": {
+  "control_center_ips": {
+    "sensitive": false,
+    "type": [
+      "tuple",
+      [
+        "string"
+      ]
+    ],
+    "value": [
+      "10.0.1.170"
+    ]
+  },
+  "formatted_inventory": {
+    "sensitive": false,
+    "type": "string",
+    "value": "\nzookeeper:\n  hosts:\n    ip-10-0-1-7.ec2.internal:\n    ip-10-0-1-142.ec2.internal:\n    ip-10-0-1-163.ec2.internal:\n\n\n\nkafka_broker:\n  hosts:\n    ip-10-0-1-43.ec2.internal:\n    ip-10-0-1-213.ec2.internal:\n    ip-10-0-1-226.ec2.internal:\n\n\ncontrol_center:\n  hosts:\n    ip-10-0-1-170.ec2.internal:\n\n\nschema_registry:\n  hosts:\n    ip-10-0-1-33.ec2.internal:\n\n\nksql:\n  hosts:\n    ip-10-0-1-207.ec2.internal:\n"
+  },
+  "kafka_broker_ips": {
     "sensitive": false,
     "type": [
       "tuple",
@@ -15,14 +142,62 @@
       ]
     ],
     "value": [
-      "10.0.1.178",
-      "10.0.1.128",
-      "10.0.1.50"
+      "10.0.1.43",
+      "10.0.1.213",
+      "10.0.1.226"
+    ]
+  },
+  "kafka_controller_ips": {
+    "sensitive": false,
+    "type": [
+      "tuple",
+      []
+    ],
+    "value": []
+  },
+  "ksql_ips": {
+    "sensitive": false,
+    "type": [
+      "tuple",
+      [
+        "string"
+      ]
+    ],
+    "value": [
+      "10.0.1.207"
+    ]
+  },
+  "schema_registry_ips": {
+    "sensitive": false,
+    "type": [
+      "tuple",
+      [
+        "string"
+      ]
+    ],
+    "value": [
+      "10.0.1.33"
     ]
   },
   "ssh_command": {
     "sensitive": false,
     "type": "string",
-    "value": "ssh -i ./terraform/confluent-ec2-key.pem ec2-user@44.192.252.188"
+    "value": "ssh -i ~/.ssh/cog-team.pem ec2-user@100.25.16.216"
+  },
+  "zookeeper_ips": {
+    "sensitive": false,
+    "type": [
+      "tuple",
+      [
+        "string",
+        "string",
+        "string"
+      ]
+    ],
+    "value": [
+      "10.0.1.7",
+      "10.0.1.142",
+      "10.0.1.163"
+    ]
   }
 }

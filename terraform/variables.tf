@@ -31,44 +31,44 @@ variable "repo_url" {
 variable "bastion_instance_type" {
   description = "EC2 instance type"
   type        = string
-  default     = "t2.large"
+  default     = "t3.micro"
 }
 
 variable "ksql_instance_type" {
   description = "EC2 instance type"
   type        = string
-  default     = "m5.xlarge"
+  default     = "t3.large"
 }
 
 variable "control_instance_type" {
   description = "EC2 instance type"
   type        = string
-  default     = "m5.2xlarge"
+  default     = "t3.large"
 }
 
 variable "kafka_broker_instance_type" {
   description = "EC2 instance type"
   type        = string
-  default     = "m5.xlarge"
+  default     = "t3.large"
 }
 
 variable "zookeeper_instance_type" {
   description = "EC2 instance type"
   type        = string
-  default     = "m5.8xlarge"
+  default     = "t3.medium"
 }
+
 variable "kafka_controller_instance_type" {
   description = "EC2 instance type"
   type        = string
-  default     = "m5.8xlarge"
+  default     = "t3.medium"
 }
 
 variable "schema_registry_instance_type" {
   description = "EC2 instance type"
   type        = string
-  default     = "m5.4xlarge"
+  default     = "t3.medium"
 }
-
 
 
 variable "vpc_cidr" {
